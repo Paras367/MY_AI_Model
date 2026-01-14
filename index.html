@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>My AI Model</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f8f9fa;
+    }
+    h2 {
+      color: #1a73e8;
+      text-align: center;
+    }
+    .input-area {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 20px;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #0d5bb8;
+    }
+    #output {
+      min-height: 60px;
+      padding: 15px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      font-size: 16px;
+    }
+    .loading {
+      color: #5f6368;
+    }
+    .spam { color: #d93025; font-weight: bold; }
+    .not-spam { color: #137333; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>🧠 My AI Spam Detector</h2>
+  
+  <div class="input-area">
+    <input type="text" id="userInput" placeholder="Type a message (e.g., 'Free money!!!')" />
+    <button onclick="predict()">Analyze</button>
+  </div>
+  
+  <div id="output" class="loading">Loading AI model...</div>
+
+  <!-- Load TensorFlow.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0/dist/tf.min.js"></script>
+  
+  <script>
+    let model = null;
+    let config = null;
+
+    // Initialize: load config + TF.js model
+    async function init() {
+      try {
+        // Load config.json
+        const configRes = await fetch('config.json');
+        config = await configRes.json();
+        
+        // Load TF.js model
+        model = await tf.loadGraphModel('./tfjs_model/model.json');
+        
+        document.getElementById('output').innerHTML = 
+          '✅ <strong>AI is ready!</strong> Type a message and click "Analyze".';
+      } catch (err) {
+        console.error("Init failed:", err);
+        document.getElementById('output').innerHTML = 
+          '❌ Failed to load AI: ' + err.message;
+      }
+    }
+
+    // Run prediction
+    async function predict() {
+      if (!model || !config) {
+        alert("AI model not ready yet. Please wait.");
+        return;
+      }
+
+      const text = document.getElementById('userInput').value.trim();
+      if (!text) {
+        alert("Please enter a message.");
+        return;
+      }
+
+      // Encode text using vocab from config.json
+      const vector = new Array(config.input_dim).fill(0);
+      const words = text.toLowerCase().match(/\w+/g) || [];
+      
+      for (const word of words) {
+        const idx = config.vocab[word];
+        if (typeof idx === 'number' && idx >= 0 && idx < config.input_dim) {
+          vector[idx] = 1;
+        }
+      }
+
+      // Run inference
+      const inputTensor = tf.tensor2d([vector], [1, config.input_dim]);
+      const pred = model.predict(inputTensor);
+      const result = await pred.data();
+      
+      // Clean up tensors to avoid memory leaks
+      inputTensor.dispose();
+      pred.dispose();
+
+      // Display result
+      const score = result[0];
+      const isSpam = score > 0.5;
+      const className = isSpam ? 'spam' : 'not-spam';
+      const label = isSpam ? '🚨 SPAM' : '✅ NOT SPAM';
+
+      document.getElementById('output').innerHTML = `
+        "<em>${text}</em>" → 
+        <span class="${className}">${label}</span> 
+        (confidence: ${(score * 100).toFixed(1)}%)
+      `;
+    }
+
+    // Start initialization
+    init();
+
+    // Allow Enter key to trigger prediction
+    document.getElementById('userInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') predict();
+    });
+  </script>
+</body>
+</html>
