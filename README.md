@@ -27,12 +27,12 @@ Trained to detect spam vs. legitimate messages using TensorFlow.js.
 
 ## 📁 Repository Structure
 MY_AI_MODEL/
-├── index.html     # Single-file frontend (HTML + CSS + JS)
-├── config.json    # Vocabulary + input dimension
-├── README.md
-└── tfjs_model/    # TensorFlow.js model files
-├── model.json
-└── group1-shard1of1.bin
+|├── index.html     # Single-file frontend (HTML + CSS + JS)
+|├── config.json    # Vocabulary + input dimension
+|├── README.md
+|└── tfjs_model/    # TensorFlow.js model files
+|├── model.json
+|└── group1-shard1of1.bin
 
 ---
 
